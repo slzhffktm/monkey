@@ -4,7 +4,6 @@
 package monkey
 
 import (
-	"runtime"
 	"syscall"
 )
 
@@ -25,11 +24,7 @@ func mprotectCrossPage(addr uintptr, length int, prot int) {
 func copyToLocation(location uintptr, data []byte) {
 	f := rawMemoryAccess(location, len(data))
 
-	if runtime.GOARCH == "arm64" {
-		mprotectCrossPage(location, len(data), syscall.PROT_READ|syscall.PROT_WRITE)
-	} else {
-		mprotectCrossPage(location, len(data), syscall.PROT_READ|syscall.PROT_WRITE|syscall.PROT_EXEC)
-	}
+	mprotectCrossPage(location, len(data), syscall.PROT_READ|syscall.PROT_WRITE|syscall.PROT_EXEC)
 	copy(f, data[:])
 	mprotectCrossPage(location, len(data), syscall.PROT_READ|syscall.PROT_EXEC)
 }
