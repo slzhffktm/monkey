@@ -1,14 +1,16 @@
-//+build !windows
+//go:build !windows
+// +build !windows
 
 package monkey
 
 import (
+	"runtime"
 	"syscall"
 )
 
 func mprotectCrossPage(addr uintptr, length int, prot int) {
 	pageSize := syscall.Getpagesize()
-	for p := pageStart(addr); p < addr + uintptr(length); p += uintptr(pageSize) {
+	for p := pageStart(addr); p < addr+uintptr(length); p += uintptr(pageSize) {
 		page := rawMemoryAccess(p, pageSize)
 		err := syscall.Mprotect(page, prot)
 		if err != nil {
@@ -23,7 +25,11 @@ func mprotectCrossPage(addr uintptr, length int, prot int) {
 func copyToLocation(location uintptr, data []byte) {
 	f := rawMemoryAccess(location, len(data))
 
-	mprotectCrossPage(location, len(data), syscall.PROT_READ|syscall.PROT_WRITE|syscall.PROT_EXEC)
+	if runtime.GOARCH == "arm64" {
+		mprotectCrossPage(location, len(data), syscall.PROT_READ|syscall.PROT_WRITE)
+	} else {
+		mprotectCrossPage(location, len(data), syscall.PROT_READ|syscall.PROT_WRITE|syscall.PROT_EXEC)
+	}
 	copy(f, data[:])
 	mprotectCrossPage(location, len(data), syscall.PROT_READ|syscall.PROT_EXEC)
 }
